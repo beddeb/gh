@@ -43,7 +43,6 @@ public:
     }
 };
 
-
 // База ребра с весом W
 template <typename W>
 class BaseEdge {
@@ -79,8 +78,6 @@ public:
     }
 };
 
-
-
 // Абстрактный базовый класс для графа
 template <typename V, typename E, typename W>
 class Graph {
@@ -91,7 +88,6 @@ public:
     virtual const std::vector<E>& edges() const = 0;
     virtual ~Graph() = default;
 };
-
 
 // Ориентированный граф
 template <typename V, typename E, typename W>
