@@ -1,51 +1,64 @@
 #include <iostream>
 #include "graph_struct.hpp"
 
-
 int main() {
-    ConcreteVertex v1(1, "VertexA");
-    ConcreteVertex v2(2, "VertexB");
-    ConcreteVertex v3(3, "VertexC");
+    // Пример с ориентированным графом
+    std::cout << "\n=== Directed Graph ===\n";
+    using CityVertex = ConcreteVertex<int>;
+    using RoadEdge = ConcreteEdge<double, CityVertex>;
+    DirectedGraph<CityVertex, RoadEdge, double, int> cityGraph;
 
-    ConcreteEdge<int> e1(&v1, &v2, 10);
-    ConcreteEdge<int> e11(&v1, &v2, 20);
-    ConcreteEdge<int> e2(&v2, &v3, 20);
+    CityVertex moscow(1, "Moscow", 12000000);
+    CityVertex spb(2, "Saint Petersburg", 5300000);
+    CityVertex novosibirsk(3, "Novosibirsk", 1600000);
+    CityVertex ekaterinburg(4, "Ekaterinburg", 1500000);
 
-    DirectedGraph<ConcreteVertex, ConcreteEdge<int>, int> directedGraph;
-    directedGraph.addVertex(v1);
-    directedGraph.addVertex(v2);
-    directedGraph.addVertex(v3);
-    directedGraph.addEdge(e1);
-    directedGraph.addEdge(e11);
-    directedGraph.addEdge(e2);
+    cityGraph.addVertex(moscow);
+    cityGraph.addVertex(spb);
+    cityGraph.addVertex(novosibirsk);
+    cityGraph.addVertex(ekaterinburg);
 
-    std::cout << "Directed graph:" << std::endl;
-    std::cout << "Vertices:" << std::endl;
-    for (const auto& vertex : directedGraph.vertices()) {
-        std::cout << vertex.id() << " - " << vertex.label() << std::endl;
+    RoadEdge moscow_spb(moscow, spb, 700.0);
+    RoadEdge moscow_novosibirsk(moscow, novosibirsk, 3350.0);
+    RoadEdge spb_ekaterinburg(spb, ekaterinburg, 2300.0);
+    RoadEdge novosibirsk_ekaterinburg(novosibirsk, ekaterinburg, 1400.0);
+
+    cityGraph.addEdge(moscow_spb);
+    cityGraph.addEdge(moscow_novosibirsk);
+    cityGraph.addEdge(spb_ekaterinburg);
+    cityGraph.addEdge(novosibirsk_ekaterinburg);
+
+    // Выводим информацию о графе
+    std::cout << "Cities (vertices):\n";
+    for (const auto& city : cityGraph.vertices()) {
+        std::cout << "City: " << city << " (population: " << city.weight() << ")\n";
     }
-    std::cout << "Edges:" << std::endl;
-    for (const auto& edge : directedGraph.edges()) {
-        std::cout << edge.source()->id() << " -> "
-                  << edge.target()->id() << " (Weight: " << edge.weight() << ")" << std::endl;
+
+    std::cout << "\nRoads (edges):\n";
+    for (const auto& road : cityGraph.edges()) {
+        std::cout << "Road: " << road << " (distance: " << road.weight() << " km)\n";
     }
 
-    UndirectedGraph<ConcreteVertex, ConcreteEdge<int>, int> undirectedGraph;
-    undirectedGraph.addVertex(v1);
-    undirectedGraph.addVertex(v2);
-    undirectedGraph.addVertex(v3);
-    undirectedGraph.addEdge(e1);
-    undirectedGraph.addEdge(e2);
+    // Пример с неориентированным графом
+    std::cout << "\n=== Undirected Graph ===\n";
+    UndirectedGraph<CityVertex, RoadEdge, double, int> undirectedCityGraph;
 
-    std::cout << "\nUndirected graph:" << std::endl;
-    std::cout << "Vertices:" << std::endl;
-    for (const auto& vertex : undirectedGraph.vertices()) {
-        std::cout << vertex.id() << " - " << vertex.label() << std::endl;
+    undirectedCityGraph.addVertex(moscow);
+    undirectedCityGraph.addVertex(spb);
+    undirectedCityGraph.addVertex(novosibirsk);
+    undirectedCityGraph.addVertex(ekaterinburg);
+
+    undirectedCityGraph.addEdge(moscow_spb);
+    undirectedCityGraph.addEdge(moscow_novosibirsk);
+
+    std::cout << "\nCities in undirected graph:\n";
+    for (const auto& city : undirectedCityGraph.vertices()) {
+        std::cout << "City: " << city << " (population: " << city.weight() << ")\n";
     }
-    std::cout << "Edges:" << std::endl;
-    for (const auto& edge : undirectedGraph.edges()) {
-        std::cout << edge.source()->id() << " -- "
-                  << edge.target()->id() << " (Weight: " << edge.weight() << ")" << std::endl;
+
+    std::cout << "\nRoads in undirected graph:\n";
+    for (const auto& road : undirectedCityGraph.edges()) {
+        std::cout << "Road: " << road << " (distance: " << road.weight() << " km)\n";
     }
 
     return 0;
