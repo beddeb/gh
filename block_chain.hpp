@@ -3,10 +3,52 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <ostream>
 #include <iomanip>
 #include <concepts>
 #include <chrono>
+#include <ctime>
+#include <functional>
 
+
+// Перегрузка оператора << для std::pair
+template<typename T1, typename T2>
+std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& p) {
+    os << p.first << ":" << p.second;
+    return os;
+}
+
+// Перегрузка оператора << для std::tuple
+template<typename... Args>
+std::ostream& operator<<(std::ostream& os, const std::tuple<Args...>& t) {
+    std::apply([&os](const auto&... args) {
+        size_t index = 0;
+        ((os << (index++ > 0 ? ":" : "") << args), ...);
+    }, t);
+    return os;
+}
+
+// Специализация std::hash для std::pair
+namespace std {
+    template<typename T1, typename T2>
+    struct hash<std::pair<T1, T2>> {
+        size_t operator()(const std::pair<T1, T2>& p) const {
+            auto h1 = std::hash<T1>{}(p.first);
+            auto h2 = std::hash<T2>{}(p.second);
+            return h1 ^ (h2 << 1); // Комбинируем хеши
+        }
+    };
+
+    template<typename T1, typename T2, typename T3>
+    struct hash<std::tuple<T1, T2, T3>> {
+        size_t operator()(const std::tuple<T1, T2, T3>& t) const {
+            auto h1 = std::hash<T1>{}(std::get<0>(t));
+            auto h2 = std::hash<T2>{}(std::get<1>(t));
+            auto h3 = std::hash<T3>{}(std::get<2>(t));
+            return h1 ^ (h2 << 1) ^ (h3 << 2); // Комбинируем хеши
+        }
+    };
+}
 
 // Concept для проверки, что тип можно хешировать
 template<typename T>
@@ -73,7 +115,12 @@ public:
         chain.push_back(newBlock);
     }
 
-//     Метод для вывода всей цепочки блоков
+    // Метод для получения цепочки блоков
+    const std::vector<Block<T>>& getChain() const {
+        return chain;
+    }
+
+    //     Метод для вывода всей цепочки блоков
 //    void printChain() const {
 //        for (const auto& block : chain) {
 //            std::cout << "Index: " << block.index << "\n"
