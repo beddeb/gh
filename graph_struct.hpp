@@ -1,6 +1,9 @@
-#include <stdexcept>
-#include <vector> // - временная мера для тестирования
+#pragma once
 
+#include <stdexcept>
+#include <string>
+#include <vector>
+#include "block_chain.hpp"
 
 // Концепт для вершины графа
 template <typename T>
@@ -17,7 +20,7 @@ concept Edge = requires(E e) {
     { e.weight() } -> std::same_as<W>;
 };
 
-// База вершины
+// Базовый класс для вершины
 class BaseVertex {
 public:
     virtual int id() const = 0;
@@ -30,8 +33,10 @@ class ConcreteVertex : public BaseVertex {
 private:
     int id_;
     std::string label_;
-
 public:
+    // Конструктор по умолчанию (необходим для использования T{} в Blockchain)
+    ConcreteVertex() : id_(0), label_("") {}
+
     ConcreteVertex(int id, std::string label) : id_(id), label_(label) {}
 
     int id() const override {
@@ -43,7 +48,13 @@ public:
     }
 };
 
-// База ребра с весом W
+// Определяем оператор вывода для ConcreteVertex в глобальном пространстве имён.
+inline std::ostream& operator<<(std::ostream& os, const ConcreteVertex& v) {
+    os << "(" << v.id() << ", " << v.label() << ")";
+    return os;
+}
+
+// Базовый класс для ребра с весом W
 template <typename W>
 class BaseEdge {
 public:
@@ -53,17 +64,20 @@ public:
     virtual ~BaseEdge() = default;
 };
 
-// Конкретная реализация ребра
+// Конкретная реализация ребра.
+// Добавим конструктор по умолчанию, что бы T{} сработал в Blockchain.
 template <typename W>
 class ConcreteEdge : public BaseEdge<W> {
 private:
     BaseVertex* source_;
     BaseVertex* target_;
     W weight_;
-
 public:
+    // Конструктор по умолчанию
+    ConcreteEdge() : source_(nullptr), target_(nullptr), weight_(W{}) { }
+
     ConcreteEdge(BaseVertex* source, BaseVertex* target, W weight)
-            : source_(source), target_(target), weight_(weight) {}
+            : source_(source), target_(target), weight_(weight) { }
 
     BaseVertex* source() const override {
         return source_;
@@ -78,68 +92,111 @@ public:
     }
 };
 
+namespace std {
+    template <>
+    struct hash<ConcreteVertex> {
+        size_t operator()(const ConcreteVertex &v) const {
+            size_t h1 = std::hash<int>{}(v.id());
+            size_t h2 = std::hash<std::string>{}(v.label());
+            return h1 ^ (h2 << 1);
+        }
+    };
+
+    template <>
+    struct hash<ConcreteEdge<int>> {
+    size_t operator()(const ConcreteEdge<int>& e) const {
+        size_t h1 = std::hash<int>{}(e.source() ? e.source()->id() : 0);
+        size_t h2 = std::hash<int>{}(e.target() ? e.target()->id() : 0);
+        size_t h3 = std::hash<int>{}(e.weight());
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+};
+}
+
+template <typename W>
+inline std::ostream& operator<<(std::ostream& os, const ConcreteEdge<W>& e) {
+    os << "("
+       << (e.source() ? e.source()->id() : -1) << "->"
+       << (e.target() ? e.target()->id() : -1) << ", "
+       << e.weight() << ")";
+    return os;
+}
+
 // Абстрактный базовый класс для графа
 template <typename V, typename E, typename W>
 class Graph {
 public:
     virtual void addVertex(const V& vertex) = 0;
     virtual void addEdge(const E& edge) = 0;
-    virtual const std::vector<V>& vertices() const = 0;
-    virtual const std::vector<E>& edges() const = 0;
+    virtual std::vector<V> vertices() const = 0;
+    virtual std::vector<E> edges() const = 0;
     virtual ~Graph() = default;
 };
 
-// Ориентированный граф
+// Ориентированный граф с хранением вершин и ребер в Blockchain.
 template <typename V, typename E, typename W>
 class DirectedGraph : public Graph<V, E, W> {
 private:
-    std::vector<V> vertices_;
-    std::vector<E> edges_;
-
+    Blockchain<V> verticesChain;
+    Blockchain<E> edgesChain;
 public:
     void addVertex(const V& vertex) override {
-        vertices_.push_back(vertex);
+        verticesChain.addBlock(vertex);
     }
 
     void addEdge(const E& edge) override {
-        edges_.push_back(edge);
+        edgesChain.addBlock(edge);
     }
 
-    const std::vector<V>& vertices() const override {
-        return vertices_;
+    // Получаем вершины (пропуская генезис-блок)
+    std::vector<V> vertices() const override {
+        std::vector<V> vec;
+        const auto& chain = verticesChain.getChain();
+        for (size_t i = 1; i < chain.size(); ++i)
+            vec.push_back(chain[i].data);
+        return vec;
     }
 
-    const std::vector<E>& edges() const override {
-        return edges_;
+    // Получаем ребра (также пропуская генезис-блок)
+    std::vector<E> edges() const override {
+        std::vector<E> vec;
+        const auto& chain = edgesChain.getChain();
+        for (size_t i = 1; i < chain.size(); ++i)
+            vec.push_back(chain[i].data);
+        return vec;
     }
 };
 
-// Неориентированный граф
+// Неориентированный граф (при добавлении ребра сохраняется его зеркало).
 template <typename V, typename E, typename W>
 class UndirectedGraph : public Graph<V, E, W> {
 private:
-    std::vector<V> vertices_;
-    std::vector<E> edges_;
-
+    Blockchain<V> verticesChain;
+    Blockchain<E> edgesChain;
 public:
     void addVertex(const V& vertex) override {
-        vertices_.push_back(vertex);
+        verticesChain.addBlock(vertex);
     }
 
     void addEdge(const E& edge) override {
-        edges_.push_back(edge);
-        edges_.push_back(E(edge.target(), edge.source(), edge.weight()));
+        edgesChain.addBlock(edge);
+        // Предполагается, что тип E имеет конструктор: E(target, source, weight)
+        edgesChain.addBlock(E(edge.target(), edge.source(), edge.weight()));
     }
 
-    const std::vector<V>& vertices() const override {
-        return vertices_;
+    std::vector<V> vertices() const override {
+        std::vector<V> vec;
+        const auto& chain = verticesChain.getChain();
+        for (size_t i = 1; i < chain.size(); ++i)
+            vec.push_back(chain[i].data);
+        return vec;
     }
 
-    const std::vector<E>& edges() const override {
-        return edges_;
+    std::vector<E> edges() const override {
+        std::vector<E> vec;
+        const auto& chain = edgesChain.getChain();
+        for (size_t i = 1; i < chain.size(); ++i)
+            vec.push_back(chain[i].data);
+        return vec;
     }
 };
-
-
-
-

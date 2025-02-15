@@ -10,7 +10,6 @@
 #include <ctime>
 #include <functional>
 
-
 // Перегрузка оператора << для std::pair
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& p) {
@@ -35,7 +34,7 @@ namespace std {
         size_t operator()(const std::pair<T1, T2>& p) const {
             auto h1 = std::hash<T1>{}(p.first);
             auto h2 = std::hash<T2>{}(p.second);
-            return h1 ^ (h2 << 1); // Комбинируем хеши
+            return h1 ^ (h2 << 1);
         }
     };
 
@@ -45,12 +44,12 @@ namespace std {
             auto h1 = std::hash<T1>{}(std::get<0>(t));
             auto h2 = std::hash<T2>{}(std::get<1>(t));
             auto h3 = std::hash<T3>{}(std::get<2>(t));
-            return h1 ^ (h2 << 1) ^ (h3 << 2); // Комбинируем хеши
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
         }
     };
 }
 
-// Concept для проверки, что тип можно хешировать
+// Concept для проверки возможности хеширования
 template<typename T>
 concept Hashable = requires(T a) {
     { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
@@ -67,7 +66,8 @@ struct Block {
 
     // Конструктор блока
     Block(size_t idx, const T& data, const std::string& prevHash)
-            : index(idx), data(data), prevHash(prevHash), timestamp(std::time(nullptr)) {
+            : index(idx), data(data), prevHash(prevHash), timestamp(std::time(nullptr))
+    {
         hash = calculateHash();
     }
 
@@ -80,13 +80,12 @@ private:
     // Метод для вычисления хеша блока
     std::string calculateHash() const {
         std::ostringstream oss;
-        oss << index << data << prevHash << timestamp; // Включаем timestamp в хеш
+        oss << index << data << prevHash << timestamp; // Для вычисления хеша включаем поля
         std::string toHash = oss.str();
 
         std::hash<std::string> hasher;
         size_t hashedValue = hasher(toHash);
 
-        // Преобразуем хеш в строку
         std::ostringstream hashStream;
         hashStream << std::hex << std::setw(16) << std::setfill('0') << hashedValue;
         return hashStream.str();
@@ -100,14 +99,14 @@ private:
     std::vector<Block<T>> chain; // Цепочка блоков
 
 public:
-    // Конструктор для инициализации блокчейна
+    // Конструктор с генерацией генезис-блока.
+    // Теперь T должен быть не только Hashable, но и default-constructible.
     Blockchain() {
-        // Создаем генезис-блок (первый блок)
         Block<T> genesisBlock(0, T{}, "0");
         chain.push_back(genesisBlock);
     }
 
-    // Метод для добавления нового блока
+    // Добавление нового блока с данными data.
     void addBlock(const T& data) {
         size_t newIndex = chain.size();
         std::string prevHash = chain.back().hash;
@@ -115,38 +114,19 @@ public:
         chain.push_back(newBlock);
     }
 
-    // Метод для получения цепочки блоков
+    // Получение цепочки блоков.
     const std::vector<Block<T>>& getChain() const {
         return chain;
     }
 
-    //     Метод для вывода всей цепочки блоков
-//    void printChain() const {
-//        for (const auto& block : chain) {
-//            std::cout << "Index: " << block.index << "\n"
-//                      << "Data: " << block.data << "\n"
-//                      << "Prev Hash: " << block.prevHash << "\n"
-//                      << "Hash: " << block.hash << "\n"
-//                      << "Timestamp: " << std::asctime(std::localtime(&block.timestamp)) // Вывод времени
-//                      << "-------------------------\n";
-//        }
-//    }
-
-    // Метод для проверки целостности цепочки
+    // Проверка целостности цепочки блоков.
     bool isValid() const {
         for (size_t i = 1; i < chain.size(); ++i) {
             const Block<T>& currentBlock = chain[i];
             const Block<T>& previousBlock = chain[i - 1];
-
-            // Проверяем, совпадает ли хеш текущего блока с вычисленным хешем
-            if (!currentBlock.isHashValid()) {
+            if (!currentBlock.isHashValid() ||
+                currentBlock.prevHash != previousBlock.hash)
                 return false;
-            }
-
-            // Проверяем, совпадает ли хеш предыдущего блока
-            if (currentBlock.prevHash != previousBlock.hash) {
-                return false;
-            }
         }
         return true;
     }
