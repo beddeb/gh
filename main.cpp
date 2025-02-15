@@ -4,9 +4,10 @@
 int main() {
     // Пример с ориентированным графом
     std::cout << "\n=== Directed Graph ===\n";
-    using CityVertex = ConcreteVertex<int>;
+    using CityVertex = ConcreteVertex<int, std::string>;
     using RoadEdge = ConcreteEdge<double, CityVertex>;
-    DirectedGraph<CityVertex, RoadEdge, double, int> cityGraph;
+    DirectedGraph<CityVertex, RoadEdge, double, int, std::string> cityGraph;
+
 
     CityVertex moscow(1, "Moscow", 12000000);
     CityVertex spb(2, "Saint Petersburg", 5300000);
@@ -39,9 +40,8 @@ int main() {
         std::cout << "Road: " << road << " (distance: " << road.weight() << " km)\n";
     }
 
-    // Пример с неориентированным графом
     std::cout << "\n=== Undirected Graph ===\n";
-    UndirectedGraph<CityVertex, RoadEdge, double, int> undirectedCityGraph;
+    UndirectedGraph<CityVertex, RoadEdge, double, int, std::string> undirectedCityGraph;
 
     undirectedCityGraph.addVertex(moscow);
     undirectedCityGraph.addVertex(spb);

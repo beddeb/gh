@@ -8,10 +8,10 @@
 
 
 // Концепт для вершины графа (добавляем требование weight())
-template <typename T, typename VW> // VW - тип веса вершины
+template <typename T, typename VW, typename VL> // VL - тип метки вершины
 concept Vertex = requires(T v) {
     { v.id() } -> std::convertible_to<int>;
-    { v.label() } -> std::convertible_to<std::string>;
+    { v.label() } -> std::convertible_to<VL>;
     { v.weight() } -> std::same_as<VW>;
 };
 
@@ -24,46 +24,46 @@ concept Edge = requires(E e, V source_v, V target_v) {
 };
 
 // Базовый класс для вершины (добавляем виртуальный метод weight())
-template <typename VW> // VW - тип веса вершины
+template <typename VW, typename VL> // VW - тип веса вершины, VL - тип метки вершины
 class BaseVertex {
 public:
     virtual int id() const = 0;
-    virtual std::string label() const = 0;
+    virtual VL label() const = 0;
     virtual VW weight() const = 0;
     virtual ~BaseVertex() = default;
 };
 
 // Конкретная реализация вершины
-template <typename VW> // VW - тип веса вершины
-class ConcreteVertex : public BaseVertex<VW> {
+template <typename VW, typename VL> // VW - тип веса вершины, VL - тип метки вершины
+class ConcreteVertex : public BaseVertex<VW, VL> {
 private:
     int id_;
-    std::string label_;
-    VW weight_; // Добавляем поле веса вершины
+    VL label_;
+    VW weight_;
 public:
     // Конструктор по умолчанию
-    ConcreteVertex() : id_(0), label_(""), weight_(VW{}) {}
+    ConcreteVertex() : id_(0), label_(VL{}), weight_(VW{}) {}
 
-    // Обновленный конструктор с весом
-    ConcreteVertex(int id, std::string label, VW weight)
+    // Обновленный конструктор с весом и меткой
+    ConcreteVertex(int id, VL label, VW weight)
             : id_(id), label_(label), weight_(weight) {}
 
     int id() const override {
         return id_;
     }
 
-    std::string label() const override {
+    VL label() const override {
         return label_;
     }
 
-    VW weight() const override { // Реализация метода weight()
+    VW weight() const override {
         return weight_;
     }
 };
 
 // Обновляем оператор вывода для ConcreteVertex
-template <typename VW>
-inline std::ostream& operator<<(std::ostream& os, const ConcreteVertex<VW>& v) {
+template <typename VW, typename VL>
+inline std::ostream& operator<<(std::ostream& os, const ConcreteVertex<VW, VL>& v) {
     os << "(" << v.id() << ", " << v.label() << ", " << v.weight() << ")";
     return os;
 }
@@ -106,19 +106,19 @@ public:
 
 // Обновляем хэш-функцию для ConcreteVertex
 namespace std {
-    template <typename VW>
-    struct hash<ConcreteVertex<VW>> {
-    size_t operator()(const ConcreteVertex<VW>& v) const {
+    template <typename VW, typename VL>
+    struct hash<ConcreteVertex<VW, VL>> {
+    size_t operator()(const ConcreteVertex<VW, VL>& v) const {
         size_t h1 = std::hash<int>{}(v.id());
-        size_t h2 = std::hash<std::string>{}(v.label());
-        size_t h3 = std::hash<VW>{}(v.weight()); // Добавляем хэширование веса
+        size_t h2 = std::hash<VL>{}(v.label());
+        size_t h3 = std::hash<VW>{}(v.weight());
         return h1 ^ (h2 << 1) ^ (h3 << 2);
     }
 };
 
-template <typename W, typename VW>
-struct hash<ConcreteEdge<W, ConcreteVertex<VW>>> {
-    size_t operator()(const ConcreteEdge<W, ConcreteVertex<VW>>& e) const {
+template <typename W, typename VW, typename VL>
+struct hash<ConcreteEdge<W, ConcreteVertex<VW, VL>>> {
+    size_t operator()(const ConcreteEdge<W, ConcreteVertex<VW, VL>>& e) const {
         size_t h1 = std::hash<int>{}(e.source().id());
         size_t h2 = std::hash<int>{}(e.target().id());
         size_t h3 = std::hash<W>{}(e.weight());
@@ -136,8 +136,8 @@ inline std::ostream& operator<<(std::ostream& os, const ConcreteEdge<W, V>& e) {
     return os;
 }
 
-// Абстрактный базовый класс для графа (добавляем VW)
-template <typename V, typename E, typename W, typename VW>
+// Абстрактный базовый класс для графа (добавляем VW и VL)
+template <typename V, typename E, typename W, typename VW, typename VL>
 class Graph {
 public:
     virtual void addVertex(const V& vertex) = 0;
@@ -148,8 +148,8 @@ public:
 };
 
 // Ориентированный граф
-template <typename V, typename E, typename W, typename VW>
-class DirectedGraph : public Graph<V, E, W, VW> {
+template <typename V, typename E, typename W, typename VW, typename VL>
+class DirectedGraph : public Graph<V, E, W, VW, VL> {
 private:
     Blockchain<V> verticesChain;
     Blockchain<E> edgesChain;
@@ -180,8 +180,8 @@ public:
 };
 
 // Неориентированный граф
-template <typename V, typename E, typename W, typename VW>
-class UndirectedGraph : public Graph<V, E, W, VW> {
+template <typename V, typename E, typename W, typename VW, typename VL>
+class UndirectedGraph : public Graph<V, E, W, VW, VL> {
 private:
     Blockchain<V> verticesChain;
     Blockchain<E> edgesChain;
