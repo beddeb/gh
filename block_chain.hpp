@@ -100,8 +100,6 @@ private:
     std::vector<Block<T>> chain; // Цепочка блоков
 
 public:
-    // Конструктор с генерацией генезис-блока.
-    // Теперь T должен быть не только Hashable, но и default-constructible.
     Blockchain() {
         Block<T> genesisBlock(0, T{}, "0");
         chain.push_back(genesisBlock);

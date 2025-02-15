@@ -7,8 +7,8 @@
 #include "block_chain.hpp"
 
 
-// Концепт для вершины графа (добавляем требование weight())
-template <typename T, typename VW, typename VL> // VL - тип метки вершины
+// Концепт для вершины графа
+template <typename T, typename VW, typename VL>
 concept Vertex = requires(T v) {
     { v.id() } -> std::convertible_to<int>;
     { v.label() } -> std::convertible_to<VL>;
@@ -23,7 +23,7 @@ concept Edge = requires(E e, V source_v, V target_v) {
     { e.weight() } -> std::same_as<W>;
 };
 
-// Базовый класс для вершины (добавляем виртуальный метод weight())
+// Базовый класс для вершины
 template <typename VW, typename VL> // VW - тип веса вершины, VL - тип метки вершины
 class BaseVertex {
 public:
@@ -41,10 +41,8 @@ private:
     VL label_;
     VW weight_;
 public:
-    // Конструктор по умолчанию
     ConcreteVertex() : id_(0), label_(VL{}), weight_(VW{}) {}
 
-    // Обновленный конструктор с весом и меткой
     ConcreteVertex(int id, VL label, VW weight)
             : id_(id), label_(label), weight_(weight) {}
 
@@ -61,7 +59,7 @@ public:
     }
 };
 
-// Обновляем оператор вывода для ConcreteVertex
+// Оператор вывода для ConcreteVertex
 template <typename VW, typename VL>
 inline std::ostream& operator<<(std::ostream& os, const ConcreteVertex<VW, VL>& v) {
     os << "(" << v.id() << ", " << v.label() << ", " << v.weight() << ")";
